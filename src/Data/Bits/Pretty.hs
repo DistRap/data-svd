@@ -23,7 +23,7 @@ import qualified Data.Bits
 -- * Show in base
 
 -- | Format number using binary notation with leading 0b,
--- padded according to its bit size, with `b` suffix
+-- padded according to its bit size
 showBin :: (PrintfArg t, FiniteBits t) => t -> String
 showBin x =
   printf
@@ -33,7 +33,7 @@ showBin x =
     )
     x
 
--- | Format number using decimal notation with `u` suffix
+-- | Format number using decimal
 showDec :: (PrintfArg t, FiniteBits t) => t -> String
 showDec x =
   printf ("%0" ++ (show decSize) ++ "u") x
@@ -46,7 +46,7 @@ showDec x =
           (2 ^ (Data.Bits.finiteBitSize x))
 
 -- | Format number using hexadecimal notation with leading 0x,
--- padded according to its bit size, with `X` suffix
+-- padded according to its bit size
 showHex :: (PrintfArg t, FiniteBits t) => t -> String
 showHex x =
   printf
@@ -63,11 +63,11 @@ formatHex = printf "0x%x"
 -- * Show binary groups
 
 -- | Print number in binary with bits grouped by `groupSize`
--- e.g. with `groupSize = 4` we would get `0b0000 1010 0000 0101`
+-- e.g. with `groupSize = 4` we would get `0000 1010 0000 0101`
 showBinGroups :: (PrintfArg b, Num b, FiniteBits b) => Int -> b -> String
 showBinGroups groupSize x =
   unwords
-    $ flip map [gs, gs - 1 ..0]
+    $ flip map [gs -1 ,gs - 2 .. 0]
     $ \g -> ((printf ("%0" ++ (show groupSize) ++ "b") (mask g x)) :: String)
   where
     mask g n = (2^groupSize - 1) .&. (n `shiftR` (fromIntegral (g * groupSize)))
