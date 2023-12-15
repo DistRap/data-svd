@@ -14,7 +14,6 @@ import Safe
 import Control.Monad
 
 import GHC.Generics
-import Data.Algorithm.Diff
 import qualified Data.Bits.Pretty
 
 data Device = Device {
@@ -288,74 +287,6 @@ fieldNames rName pName dev =
   map
     fieldName
     $ getRegFields pName rName dev
-
--- Diffing
-
-diffPeriphNames :: Device -> Device -> [Diff String]
-diffPeriphNames dev1 dev2 = getDiff
-  (sort $ map periphName $ devicePeripherals dev1)
-  (sort $ map periphName $ devicePeripherals dev2)
-
-diffRegisterNames :: String -> Device -> Device -> [Diff String]
-diffRegisterNames pName dev1 dev2 = getDiff
-  (sort $ registerNames pName dev1)
-  (sort $ registerNames pName dev2)
-
-regNames :: Peripheral -> [String]
-regNames = map regName . periphRegisters
-
-diffRegNames :: Peripheral -> Peripheral -> [Diff String]
-diffRegNames = diff regNames
-
-regNameFields :: String -> Peripheral -> [Field]
-regNameFields rName =
-    regFields
-  . headNote "regNameFields"
-  . filter((==rName) . regName)
-  . periphRegisters
-
-diff
-  :: Ord a
-  => (t -> [a])
-  -> t
-  -> t
-  -> [Diff a]
-diff fn x y = getDiff (sort $ fn x) (sort $ fn y)
-
-diffFieldNames
-  :: String
-  -> String
-  -> Device
-  -> Device
-  -> [Diff String]
-diffFieldNames pName regName dev1 dev2 = getDiff
-  (sort $ fieldNames regName pName dev1)
-  (sort $ fieldNames regName pName dev2)
-
-diffFields :: [Field] -> [Field] -> [PolyDiff Field Field]
-diffFields as bs = getDiffBy (\x y ->
-    cmps fieldName x y
-    && cmps fieldBitWidth x y
-    && cmps fieldBitOffset x y)
-  (sortOn fieldBitOffset as)
-  (sortOn fieldBitOffset bs)
-  where
-    -- XXX: comparing / on
-    cmps fn a b = fn a == fn b
-
-diffDistance :: [PolyDiff a b] -> Int
-diffDistance x = sum $ map go x
-  where
-    go (Both _ _) = 0
-    go (First  _) = 1
-    go (Second _) = 1
-
-isBoth :: PolyDiff a b -> Bool
-isBoth (Both _ _) = True
-isBoth _ = False
-
-getBoths :: [PolyDiff a b] -> [a]
-getBoths = map (\(Both x _) -> x) . filter isBoth
 
 instance Default Device where
   def = Device

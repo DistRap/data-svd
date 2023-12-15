@@ -24,6 +24,7 @@ library
   hs-source-dirs:      src
   exposed-modules:     Data.Bits.Pretty
                        Data.SVD
+                       Data.SVD.Diff
                        Data.SVD.Parse
                        Data.SVD.Pretty
                        Data.SVD.Types
