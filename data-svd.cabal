@@ -1,9 +1,9 @@
 cabal-version:       2.2
 name:                data-svd
 version:             0.1.0.0
-synopsis:            Example project
--- description:         Something a bit longer
-homepage:            https://github.com/sorki/data-svd
+synopsis:            SVD (System view description) file handling
+description:         Parse, print, diff SVD files
+homepage:            https://github.com/distrap/data-svd
 license:             BSD-3-Clause
 license-file:        LICENSE
 author:              sorki
@@ -66,4 +66,4 @@ executable data-svd-exe
 
 source-repository head
   type:     git
-  location: https://github.com/sorki/data-svd
+  location: https://github.com/distrap/data-svd
