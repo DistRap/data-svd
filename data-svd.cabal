@@ -6,10 +6,10 @@ synopsis:            Example project
 homepage:            https://github.com/sorki/data-svd
 license:             BSD-3-Clause
 license-file:        LICENSE
-author:              Richard Marko
+author:              sorki
 maintainer:          srk@48.io
-copyright:           2023 Richard Marko
--- category:            Embedded
+copyright:           2023 sorki
+category:            Embedded
 build-type:          Simple
 
 extra-source-files:
@@ -19,15 +19,25 @@ extra-source-files:
 extra-doc-files:
     CHANGELOG.md
 
--- library
---   hs-source-dirs:      src
---   exposed-modules:     Data.Cayene
---                      , Data.Cayene.Types
---   build-depends:       base >= 4.7 && < 5
---                      , binary
---                      , bytestring
---                      , text
---   default-language:    Haskell2010
+library
+  ghc-options:         -Wall
+  hs-source-dirs:      src
+  exposed-modules:     Data.Bits.Pretty
+                       Data.SVD
+                       Data.SVD.Parse
+                       Data.SVD.Pretty
+                       Data.SVD.Types
+  build-depends:       base >= 4.7 && < 5
+                     , ansi-wl-pprint
+                     , containers
+                     , cereal
+                     , data-default-class
+                     , Diff
+                     , hxt
+                     , hxt-xpath
+                     , safe
+                     , text
+  default-language:    Haskell2010
 
 executable data-svd-exe
   hs-source-dirs:      app
