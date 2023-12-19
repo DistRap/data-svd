@@ -1,5 +1,5 @@
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Data.SVD.Pretty where
 
@@ -46,41 +46,6 @@ ppReg Register{..} =
   <+> (white $ ppHex regAddressOffset)
   <+> (cyan $ char '-' <+> (string regDescription))
   <$$> indent 2 (ppList ppField regFields)
-
-ppIvoryReg
-  :: Peripheral
-  -> Register
-  -> Doc
-ppIvoryReg Peripheral{..} Register{..} =
-  hardline
-  <> (red $ string $ "-- " ++ periphName ++ periphDescription)
-  <> hardline
-  <> (red $ string "[ivory|\n")
-  <+> (string "bitdata ")
-  <> (blue $ string $ upcaseRegName)
-  <+> (string $ ":: Bits " ++ (show regSize) ++ " = ")
-  <> (blue $ string lowcaseRegName)
-  <$$> indent 2 ((vcat $ zipWith (<+>) pattern (ppField <$> fmap (prefixRegField $ lowcaseRegName ++ "_") regFields))
-                  <$$> (string "}"))
-  <$$> (red $ string "|]")
-  <$$> mkPeriph
-    where
-      pattern = (string "{"):(repeat $ string ",")
-      prefixRegField :: String -> Field -> Field
-      prefixRegField prefix f = f {fieldName = (prefix ++fieldName f)}
-      upcaseRegName = mconcat [periphName, "_", regName]
-      lowcaseRegName = toLower <$> upcaseRegName
-      mkPeriph =
-        hardline
-        <> (string $ "reg" ++ upcaseRegName ++ " :: BitDataReg " ++ upcaseRegName)
-        <> hardline
-        <> (string $ mconcat ["reg",
-                            upcaseRegName,
-                            " = mkBitDataRegNamed (",
-                            (toLower <$> periphName),
-                            "_periph_base + ", Data.Bits.Pretty.formatHex regAddressOffset, ")",
-                            " \"", lowcaseRegName, "\""
-                            ])
 
 ppHex :: Int -> Doc
 ppHex = text . Data.Bits.Pretty.formatHex
