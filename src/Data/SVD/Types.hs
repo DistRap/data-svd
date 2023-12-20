@@ -51,6 +51,7 @@ data Peripheral = Peripheral {
   , periphAddressBlock :: Maybe AddressBlock
   , periphInterrupts   :: [Interrupt]
   , periphRegisters    :: [Register]
+  , periphClusters     :: [Cluster]
   } deriving (Generic, Eq, Ord, Show)
 
 instance Default Peripheral where
@@ -63,6 +64,7 @@ instance Default Peripheral where
     , periphAddressBlock = Nothing
     , periphInterrupts   = []
     , periphRegisters    = []
+    , periphClusters     = []
     }
 
 instance Serialize Peripheral
@@ -83,9 +85,40 @@ data Interrupt = Interrupt {
 
 instance Serialize Interrupt
 
+data DimensionIndex
+  = DimensionIndex_FromTo Int Int
+  | DimensionIndex_List [String]
+  deriving (Generic, Eq, Ord, Show)
+
+instance Serialize DimensionIndex
+
+data Dimension = Dimension {
+    dimensionSize      :: Int
+  , dimensionIndex     :: DimensionIndex
+  , dimensionIncrement :: Int
+  } deriving (Generic, Eq, Ord, Show)
+
+instance Serialize Dimension
+
+-- | Cluster describes a sequence of neighboring registers within a peripheral.
+-- A <cluster> specifies the addressOffset relative to the baseAddress of the grouping element.
+-- All <register> elements within a <cluster> specify their addressOffset relative to the cluster base address
+-- (<peripheral.baseAddress> + <cluster.addressOffset>).
+data Cluster = Cluster {
+    clusterName          :: String
+  , clusterDimension     :: Maybe Dimension
+  , clusterDescription   :: String
+  , clusterAddressOffset :: Int
+  , clusterRegisters     :: [Register]
+  , clusterNested        :: [Cluster]
+  } deriving (Generic, Eq, Ord, Show)
+
+instance Serialize Cluster
+
 data Register = Register {
     regName          :: String
   , regDisplayName   :: String
+  , regDimension     :: Maybe Dimension
   , regDescription   :: String
   , regAddressOffset :: Int
   , regSize          :: Int
@@ -98,6 +131,7 @@ instance Default Register where
   def = Register
     { regName          = "defaultRegister"
     , regDisplayName   = mempty
+    , regDimension     = Nothing
     , regDescription   = mempty
     , regAddressOffset = 0
     , regSize          = 0
@@ -121,6 +155,7 @@ instance Serialize AccessType
 data Field = Field {
     fieldName        :: String
   , fieldDescription :: String
+  , fieldDimension   :: Maybe Dimension
   , fieldBitOffset   :: Int
   , fieldBitWidth    :: Int
   , fieldReserved    :: Bool  -- so we can add reserved fields to the list
@@ -131,6 +166,7 @@ instance Default Field where
   def = Field
     { fieldName        = "defaultField"
     , fieldDescription = mempty
+    , fieldDimension   = Nothing
     , fieldBitOffset   = 0
     , fieldBitWidth    = 0
     , fieldReserved    = False
@@ -170,7 +206,16 @@ procFields Register{..} =
 
     reserved =
       map
-        (\(offset, width) -> Field "_" "(Reserved)" offset width True Nothing)
+        $ \(offset, width) ->
+          Field
+            { fieldName = "_"
+            , fieldDescription = "(Reserved)"
+            , fieldDimension = Nothing
+            , fieldBitOffset = offset
+            , fieldBitWidth = width
+            , fieldReserved = True
+            , fieldRegType = Nothing
+            }
 
     conts x = case cont x of
       [] -> []

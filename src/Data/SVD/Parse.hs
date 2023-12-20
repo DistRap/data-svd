@@ -91,7 +91,8 @@ peripheral = atTag "peripheral" >>>
 
     periphInterrupts <- listA interrupt -< x
 
-    periphRegisters <- listA register -< x
+    periphRegisters <- listA register <<< atTag "registers" -< x
+    periphClusters <- listA cluster <<< atTag "registers" -< x
 
     let periphBaseAddress = read baseAddress'
         periphDescription = filterCrap desc
@@ -127,10 +128,45 @@ interrupt = atTag "interrupt" >>>
 
     returnA -< Interrupt{..}
 
+cluster
+  :: ArrowXml cat
+  => cat (NTree XNode) Cluster
+cluster = atTag "cluster" >>>
+  proc x -> do
+    clusterName <- textAtTag "name" -< x
+    clusterDescription <- textAtTag "description" -< x
+    clusterDimension <- withDefault (arr Just  <<< dimension) Nothing -< x
+    offset <- textAtTag "addressOffset" -< x
+    clusterRegisters <- listA register -< x
+    clusterNested <- listA cluster -< x
+
+    let clusterAddressOffset = read offset
+    returnA -< Cluster{..}
+
+dimension
+  :: ArrowXml cat
+  => cat (NTree XNode) Dimension
+dimension =
+  proc x -> do
+    dim <- textAtTag "dim" -< x
+    dimIncr <- textAtTag "dimIncrement" -< x
+    dimIdx <- textAtTag "dimIndex" -< x
+
+    let
+      dimensionSize = read dim
+      dimensionIncrement = read dimIncr
+      dimensionIndex = case dimIdx of
+        i | '-' `elem` i -> case words [ if c == '-' then ' ' else c | c <- i ] of
+          [from, to] -> DimensionIndex_FromTo (read from) (read to)
+          _ -> error $ "Don't know how to handle ranged dimIndex: " <> i
+        i | ',' `elem` i -> DimensionIndex_List $ words [ if c == ',' then ' ' else c | c <- i ]
+        i | otherwise -> error $ "Don't know how to handle dimIndex: " <> i
+    returnA -< Dimension{..}
+
 register
   :: ArrowXml cat
   => cat (NTree XNode) Register
-register = atTag "registers" >>> atTag "register" >>>
+register = atTag "register" >>>
   proc x -> do
     regName <- textAtTag "name" -< x
     regDisplayName <- textAtTagOrEmpty "displayName" -< x
@@ -142,6 +178,8 @@ register = atTag "registers" >>> atTag "register" >>>
 
     regResetValue <- withDefault (arr (Just . read) <<< textAtTag "resetValue") Nothing -< x
     regFields <- withDefault (listA field <<< atTag "fields") [] -< x
+
+    regDimension <- withDefault (arr Just  <<< dimension) Nothing -< x
 
     let regAddressOffset = read offset
         regSize = read size
@@ -156,6 +194,7 @@ field
 field = atTag "field" >>>
   proc x -> do
     fieldName <- textAtTag "name" -< x
+    fieldDimension <- withDefault (arr Just  <<< dimension) Nothing -< x
     desc <- textAtTagOrEmpty "description" -< x
 
     bitOffsetMay <- withDefault (arr (Just . read) <<< textAtTag "bitOffset") Nothing -< x
