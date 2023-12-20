@@ -3,11 +3,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Data.SVD.Dim
-  ( expandDim
+  ( expandDevice
+  -- * For testing
   , expandCluster
   , expandField
   , expandRegister
-  , expandDevice
   ) where
 
 import Control.Lens ((^.), set, over)
@@ -18,6 +18,8 @@ import Data.SVD.Types
 
 -- Expand @Cluster@, @Field@, @Register@ into multiples
 -- according to its @Dimension@
+--
+-- If @Dimension@ is nothing return singleton with the original
 expandDim
   :: ( HasName a String
      , HasDescription a String
@@ -58,29 +60,39 @@ expandDim getOffset setOffset element =
       in
         [ gen element i ix | (i, ix) <- zip [0..] ixs ]
 
+-- | Expand @Field@ into multiple fields if it has a @Dimension@
+-- return just the field if not
 expandField :: Field -> [Field]
 expandField = expandDim (^. bitOffset) (set bitOffset)
 
+-- | Expand @Cluster@ into multiple cluster if it has a @Dimension@
+-- return just the cluster if not
 expandCluster :: Cluster -> [Cluster]
 expandCluster = expandDim (^. addressOffset) (set addressOffset)
 
+-- | Expand @Register@ into multiple registers if it has a @Dimension@
+-- return just the register if not
 expandRegister :: Register -> [Register]
 expandRegister = expandDim (^. addressOffset) (set addressOffset)
 
+-- | Expand all fields of a register
 expandRegFields :: Register -> Register
 expandRegFields r =
   set
-  fields
-  (concatMap expandField (r ^. fields))
-  r
+    fields
+    (concatMap expandField (r ^. fields))
+    r
 
+-- | Expand all registers of a peripheral
 expandPeriphRegisters :: Peripheral -> Peripheral
 expandPeriphRegisters p =
   set
-  registers
-  (concatMap expandRegister (p ^. registers))
-  p
+    registers
+    (concatMap expandRegister (p ^. registers))
+    p
 
+-- | Expand all cluster of a peripheral
+-- then eliminate all of them into registers
 expandPeriphClusters :: Peripheral -> Peripheral
 expandPeriphClusters p =
   set
