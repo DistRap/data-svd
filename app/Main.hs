@@ -10,7 +10,5 @@ main = System.Environment.getArgs >>= \case
     Data.SVD.parseSVD filename >>= \case
       Left e -> error $ show e
       Right p ->
-        putStrLn
-        . Data.SVD.displayDevice
-        $ Data.SVD.expandDevice p
+        putStrLn $ Data.SVD.displayDevice p
   _ -> error "No input svd file"
