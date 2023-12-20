@@ -1,3 +1,16 @@
+{-# LANGUAGE LambdaCase #-}
 module Main where
 
-main = putStrLn "Hello World"
+import qualified Data.SVD
+import qualified System.Environment
+
+main :: IO ()
+main = System.Environment.getArgs >>= \case
+  [filename] -> do
+    Data.SVD.parseSVD filename >>= \case
+      Left e -> error $ show e
+      Right p ->
+        putStrLn
+        . Data.SVD.displayDevice
+        $ Data.SVD.expandDevice p
+  _ -> error "No input svd file"
