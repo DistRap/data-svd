@@ -1,7 +1,43 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Data.SVD.Pretty where
+module Data.SVD.Pretty
+  (
+  -- * Helpers
+    ppList
+  , displayPretty
+  , displayCompact
+  -- * Shorthand
+  , displayDevice
+  , displayDeviceInfo
+  , displayPeripheral
+  , displayRegister
+  , displayMemMap
+  , displayCompactMemMap
+  , displayDevISR
+  , displayISRs
+  -- * Pretty printers
+  , ppDevice
+  , ppPeriph
+  , ppReg
+  , ppHex
+  -- ** Interrupts
+  , ppDevISR
+  , ppISR
+  -- ** Terse output
+  , ppDeviceInfo
+  , ppPeriphName
+  , shortField
+  -- ** MemMap
+  , ppMem
+  -- * Who knows
+  , printSetFields
+  , printSetField
+  , showField
+  , fieldRange
+  , hexFieldVal
+  )
+  where
 
 import Data.Char (toLower)
 import Data.SVD.Types
@@ -11,23 +47,57 @@ import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 import qualified Data.Bits.Pretty
 import qualified Data.SVD.Util
 
+-- * Helpers
+
 ppList :: (a -> Doc) -> [a] -> Doc
 ppList pp x = vcat $ map pp x
 
-ppDevice :: Device -> String
-ppDevice res = displayS (renderPretty 0.4 80 (ppDevice' res)) ""
+displayPretty :: Doc -> String
+displayPretty what =
+  displayS
+    (renderPretty
+       0.4
+       80
+       what
+    )
+    ""
 
-ppDeviceInfo :: Device -> String
-ppDeviceInfo res = displayS (renderPretty 0.4 80 (ppDeviceInfo' res)) ""
+displayCompact :: Doc -> String
+displayCompact what =
+  displayS
+    (renderCompact what)
+    ""
 
-ppPeripheral :: Peripheral -> String
-ppPeripheral res = displayS (renderPretty 0.4 80 (ppPeriph res)) ""
+-- * Shorthand
 
-ppRegister :: Register -> String
-ppRegister res = displayS (renderPretty 0.4 80 (ppReg res)) ""
+displayDevice :: Device -> String
+displayDevice = displayPretty . ppDevice
 
-ppDevice' :: Device -> Doc
-ppDevice' Device{..} =
+displayDeviceInfo :: Device -> String
+displayDeviceInfo = displayPretty . ppDeviceInfo
+
+displayPeripheral :: Peripheral -> String
+displayPeripheral = displayPretty . ppPeriph
+
+displayRegister :: Register -> String
+displayRegister = displayPretty . ppReg
+
+displayMemMap :: [(String, String)] -> String
+displayMemMap = displayPretty . ppList ppMem
+
+displayCompactMemMap :: [(String, String)] -> String
+displayCompactMemMap = displayCompact . ppList ppMem
+
+displayDevISR :: Device -> String
+displayDevISR = displayPretty . ppDevISR
+
+displayISRs :: [Interrupt] -> String
+displayISRs = displayPretty . ppList ppISR
+
+-- * Pretty printers
+
+ppDevice :: Device -> Doc
+ppDevice Device{..} =
   (red $ string deviceName)
   <$$> indent 2 (ppList ppPeriph devicePeripherals)
 
@@ -61,10 +131,6 @@ ppField Field{..} =
   <+> ppWidthPad 7 fieldBitWidth
   <+> cyan (string $ " -- " ++ fieldDescription)
 
-ppWidth :: Int -> Doc
-ppWidth 1 = string "Bit"
-ppWidth x = string "Bits" <+> int x
-
 ppWidthPad
   :: Int
   -> Int
@@ -72,21 +138,15 @@ ppWidthPad
 ppWidthPad m 1 = string $ rpad m "Bit"
 ppWidthPad m x = string $ rpad m $ "Bits " ++ show x
 
--- * ISR
+-- ** Interrupts
 
-ppDevISR :: Device -> String
-ppDevISR res = displayS (renderPretty 0.4 80 (ppDevISR' res)) ""
-
-ppDevISR' :: Device -> Doc
-ppDevISR' Device{..} = (ppList ppPeriphISR devicePeripherals)
+ppDevISR :: Device -> Doc
+ppDevISR Device{..} = ppList ppPeriphISR devicePeripherals
 
 ppPeriphISR :: Peripheral -> Doc
 ppPeriphISR Peripheral{..} =
   indent 2 (ppList ppISR periphInterrupts)
 --  <//> (maybe empty (\x -> string "Derived from" <+> string x) periphDerivedFrom)
-
-ppISRs :: [Interrupt] -> String
-ppISRs res = displayS (renderPretty 0.4 80 (ppList ppISR res)) ""
 
 ppISR :: Interrupt -> Doc
 ppISR Interrupt{..} = indent 2 (
@@ -95,28 +155,15 @@ ppISR Interrupt{..} = indent 2 (
   <> " -- " <> int interruptValue <+> string interruptDescription
   )
 
--- Terse output
+-- ** Terse output
 
-ppDeviceInfo' :: Device -> Doc
-ppDeviceInfo' Device{..} =
+ppDeviceInfo :: Device -> Doc
+ppDeviceInfo Device{..} =
   (red $ string deviceName)
   <$$> indent 2 (ppList ppPeriphName devicePeripherals)
 
 ppPeriphName :: Peripheral -> Doc
 ppPeriphName Peripheral{..} = (yellow $ string periphName)
-
--- * MemMap
-
-ppMemMap :: [(String, String)] -> String
-ppMemMap res = displayS (renderPretty 0.4 80 (ppList ppMem res)) ""
-
-ppMem :: (String, String) -> Doc
-ppMem (addr, periph) =
-     name <> " :: Integer"
-  </> name
-  <> " = "
-  <> string addr
-  where name = string (map toLower periph) <> "_periph_base"
 
 shortField :: Field -> String
 shortField Field{..} = unwords [
@@ -125,6 +172,16 @@ shortField Field{..} = unwords [
   , show fieldBitOffset
   , "width"
   , show fieldBitWidth ]
+
+-- ** MemMap
+
+ppMem :: (String, String) -> Doc
+ppMem (addr, periph) =
+     name <> " :: Integer"
+  </> name
+  <> " = "
+  <> string addr
+  where name = string (map toLower periph) <> "_periph_base"
 
 -- | Print currently set (non-zero) fields
 printSetFields :: (Show a, Eq a, Num a) => [(a, Field)] -> String
