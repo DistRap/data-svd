@@ -82,17 +82,19 @@ svdPeripherals = atTag "device" >>>
 parsePeripheral :: ArrowXml cat => cat (NTree XNode) Peripheral
 parsePeripheral = atTag "peripheral" >>>
   proc x -> do
+    -- only these three avail for derived peripherals
     periphName <- textAtTag "name" -< x
     periphDerivedFrom <- withDefault (arr Just <<< isA (/= "") <<< att "derivedFrom") Nothing -< x
+    baseAddress' <- textAtTag "baseAddress" -< x
+
     desc <- withDefault (textAtTag "description") "" -< x
     periphGroupName <- withDefault (textAtTag "groupName") "" -< x
-    baseAddress' <- textAtTag "baseAddress" -< x
     periphAddressBlock <- withDefault (arr Just <<< parseAddressBlock) Nothing -< x
 
     periphInterrupts <- listA parseInterrupt -< x
 
-    periphRegisters <- listA parseRegister <<< atTag "registers" -< x
-    periphClusters <- listA parseCluster <<< atTag "registers" -< x
+    periphRegisters <- withDefault (listA parseRegister <<< atTag "registers") mempty -< x
+    periphClusters <- withDefault (listA parseCluster <<< atTag "registers") mempty -< x
 
     let periphBaseAddress = read baseAddress'
         periphDescription = filterCrap desc
