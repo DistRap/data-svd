@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
 module DimSpec where
 
 import Control.Lens
