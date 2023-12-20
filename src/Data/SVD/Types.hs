@@ -98,8 +98,8 @@ instance Serialize DimensionIndex
 
 data Dimension = Dimension {
     dimensionSize      :: Int
-  , dimensionIndex     :: DimensionIndex
   , dimensionIncrement :: Int
+  , dimensionIndex     :: DimensionIndex
   } deriving (Generic, Eq, Ord, Show)
 
 instance Serialize Dimension
