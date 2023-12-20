@@ -25,10 +25,12 @@ library
   exposed-modules:     Data.Bits.Pretty
                        Data.SVD
                        Data.SVD.Diff
+                       Data.SVD.Dim
                        Data.SVD.Lens
                        Data.SVD.Parse
                        Data.SVD.Pretty
                        Data.SVD.Types
+                       Data.SVD.Util
   build-depends:       base >= 4.7 && < 5
                      , ansi-wl-pprint
                      , containers

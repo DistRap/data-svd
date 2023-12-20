@@ -7,19 +7,15 @@ import qualified Data.Maybe
 import qualified Safe
 
 import Data.SVD.Types
-  ( Device
-  , Peripheral
-  , Field
-  , devicePeripherals
-  , fieldBitOffset
-  , fieldBitWidth
-  , fieldName
-  , fieldNames
-  , periphName
-  , periphRegisters
+  ( Device(..)
+  , Peripheral(..)
+  , Register(..)
+  , Field(..)
+  )
+
+import Data.SVD.Util
+  ( fieldNames
   , registerNames
-  , regFields
-  , regName
   )
 
 diffPeriphNames

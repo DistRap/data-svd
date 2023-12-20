@@ -9,6 +9,7 @@ import Data.Word
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 
 import qualified Data.Bits.Pretty
+import qualified Data.SVD.Util
 
 ppList :: (a -> Doc) -> [a] -> Doc
 ppList pp x = vcat $ map pp x
@@ -127,7 +128,7 @@ shortField Field{..} = unwords [
 
 -- | Print currently set (non-zero) fields
 printSetFields :: (Show a, Eq a, Num a) => [(a, Field)] -> String
-printSetFields = unlines . map printSetField . filterSet
+printSetFields = unlines . map printSetField . Data.SVD.Util.filterSet
 
 printSetField :: (Show a, Eq a, Num a) => (a, Field) -> String
 printSetField (_, f) | fieldBitWidth f == 1 = concat ["Bit ", show (fieldBitOffset f), " ", fieldName f]
