@@ -126,7 +126,7 @@ rpad m xs = take m $ xs ++ repeat ' '
 
 ppField :: Field -> Doc
 ppField Field{..} =
-  (green $ string $ rpad 25 (toLower <$> fieldName))
+  (green $ string $ rpad 25 fieldName)
   <+> string "::"
   <+> ppWidthPad 7 fieldBitWidth
   <+> cyan (string $ " -- " ++ fieldDescription)
