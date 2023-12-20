@@ -25,6 +25,7 @@ library
   exposed-modules:     Data.Bits.Pretty
                        Data.SVD
                        Data.SVD.Diff
+                       Data.SVD.Lens
                        Data.SVD.Parse
                        Data.SVD.Pretty
                        Data.SVD.Types
@@ -36,6 +37,7 @@ library
                      , Diff
                      , hxt
                      , hxt-xpath
+                     , lens
                      , safe
                      , text
   default-language:    Haskell2010
