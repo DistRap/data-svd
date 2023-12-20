@@ -224,19 +224,3 @@ parseField = atTag "field" >>>
                       readNote "splitRange" $ drop 1 $ dropWhile (/=':') raw)
         where
           raw = drop 1 $ init r
-
-parseSVD :: String -> IO (Either String Device)
-parseSVD f = do
-  res <- runX (readDocument [] f >>> svd)
-  case res of
-    [] -> return $ Left "no device parsed"
-    [x] -> return $ Right x
-    _ -> return $ Left "multiple devices parsed"
-
-parseSVDPeripherals :: String -> IO (Either String [Peripheral])
-parseSVDPeripherals f = do
-  res <- runX (readDocument [] f >>> svdPeripherals)
-  case res of
-    [] -> return $ Left "no peripherals parsed"
-    [x] -> return $ Right x
-    _ -> return $ Left "multiple devices parsed"

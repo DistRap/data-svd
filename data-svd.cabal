@@ -26,6 +26,7 @@ library
                        Data.SVD
                        Data.SVD.Diff
                        Data.SVD.Dim
+                       Data.SVD.IO
                        Data.SVD.Lens
                        Data.SVD.Parse
                        Data.SVD.Pretty
