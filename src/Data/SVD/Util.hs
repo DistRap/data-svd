@@ -185,7 +185,7 @@ getPeriphReg :: String -> String -> Device -> Either String Register
 getPeriphReg pName rName dev =
   either
     Left
-    (maybeToEither errMsg . getPeriphRegMay rName) 
+    (maybeToEither errMsg . getPeriphRegMay rName)
     $ getPeriphFollow pName dev
   where
     errMsg = "No register found: " ++ rName ++ " for peripheral " ++ pName

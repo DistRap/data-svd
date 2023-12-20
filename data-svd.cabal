@@ -52,7 +52,6 @@ executable data-svd-exe
                      , data-svd
   default-language:    Haskell2010
 
-
 test-suite spec
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
