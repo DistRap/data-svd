@@ -68,7 +68,7 @@ svd = atTag "device" >>>
         deviceResetMask = read resetMask'
         deviceDescription = filterCrap desc
 
-    devicePeripherals <- listA peripheral <<< atTag "peripherals" -< x
+    devicePeripherals <- listA parsePeripheral <<< atTag "peripherals" -< x
 
     returnA -< Device{..}
 
@@ -76,33 +76,33 @@ svd = atTag "device" >>>
 svdPeripherals :: ArrowXml cat => cat (NTree XNode) [Peripheral]
 svdPeripherals = atTag "device" >>>
   proc x -> do
-    devicePeripherals <- listA peripheral <<< atTag "peripherals" -< x
+    devicePeripherals <- listA parsePeripheral <<< atTag "peripherals" -< x
     returnA -< devicePeripherals
 
-peripheral :: ArrowXml cat => cat (NTree XNode) Peripheral
-peripheral = atTag "peripheral" >>>
+parsePeripheral :: ArrowXml cat => cat (NTree XNode) Peripheral
+parsePeripheral = atTag "peripheral" >>>
   proc x -> do
     periphName <- textAtTag "name" -< x
     periphDerivedFrom <- withDefault (arr Just <<< isA (/= "") <<< att "derivedFrom") Nothing -< x
     desc <- withDefault (textAtTag "description") "" -< x
     periphGroupName <- withDefault (textAtTag "groupName") "" -< x
     baseAddress' <- textAtTag "baseAddress" -< x
-    periphAddressBlock <- withDefault (arr Just <<< addressBlock) Nothing -< x
+    periphAddressBlock <- withDefault (arr Just <<< parseAddressBlock) Nothing -< x
 
-    periphInterrupts <- listA interrupt -< x
+    periphInterrupts <- listA parseInterrupt -< x
 
-    periphRegisters <- listA register <<< atTag "registers" -< x
-    periphClusters <- listA cluster <<< atTag "registers" -< x
+    periphRegisters <- listA parseRegister <<< atTag "registers" -< x
+    periphClusters <- listA parseCluster <<< atTag "registers" -< x
 
     let periphBaseAddress = read baseAddress'
         periphDescription = filterCrap desc
 
     returnA -< Peripheral{..}
 
-addressBlock
+parseAddressBlock
   :: ArrowXml cat
   => cat (NTree XNode) AddressBlock
-addressBlock = atTag "addressBlock" >>>
+parseAddressBlock = atTag "addressBlock" >>>
   proc x -> do
     offset <- textAtTag "offset" -< x
     size <- textAtTag "size" -< x
@@ -113,10 +113,10 @@ addressBlock = atTag "addressBlock" >>>
 
     returnA -< AddressBlock{..}
 
-interrupt
+parseInterrupt
   :: ArrowXml cat
   => cat (NTree XNode) Interrupt
-interrupt = atTag "interrupt" >>>
+parseInterrupt = atTag "interrupt" >>>
   proc x -> do
     name <- textAtTag "name" -< x
     desc <- textAtTag "description" -< x
@@ -128,25 +128,25 @@ interrupt = atTag "interrupt" >>>
 
     returnA -< Interrupt{..}
 
-cluster
+parseCluster
   :: ArrowXml cat
   => cat (NTree XNode) Cluster
-cluster = atTag "cluster" >>>
+parseCluster = atTag "cluster" >>>
   proc x -> do
     clusterName <- textAtTag "name" -< x
     clusterDescription <- textAtTag "description" -< x
-    clusterDimension <- withDefault (arr Just  <<< dimension) Nothing -< x
+    clusterDimension <- withDefault (arr Just  <<< parseDimension) Nothing -< x
     offset <- textAtTag "addressOffset" -< x
-    clusterRegisters <- listA register -< x
-    clusterNested <- listA cluster -< x
+    clusterRegisters <- listA parseRegister -< x
+    clusterNested <- listA parseCluster -< x
 
     let clusterAddressOffset = read offset
     returnA -< Cluster{..}
 
-dimension
+parseDimension
   :: ArrowXml cat
   => cat (NTree XNode) Dimension
-dimension =
+parseDimension =
   proc x -> do
     dim <- textAtTag "dim" -< x
     dimIncr <- textAtTag "dimIncrement" -< x
@@ -163,10 +163,10 @@ dimension =
         i | otherwise -> error $ "Don't know how to handle dimIndex: " <> i
     returnA -< Dimension{..}
 
-register
+parseRegister
   :: ArrowXml cat
   => cat (NTree XNode) Register
-register = atTag "register" >>>
+parseRegister = atTag "register" >>>
   proc x -> do
     regName <- textAtTag "name" -< x
     regDisplayName <- textAtTagOrEmpty "displayName" -< x
@@ -177,9 +177,9 @@ register = atTag "register" >>>
     access <- withDefault (textAtTag "access") "read-write" -< x
 
     regResetValue <- withDefault (arr (Just . read) <<< textAtTag "resetValue") Nothing -< x
-    regFields <- withDefault (listA field <<< atTag "fields") [] -< x
+    regFields <- withDefault (listA parseField <<< atTag "fields") [] -< x
 
-    regDimension <- withDefault (arr Just  <<< dimension) Nothing -< x
+    regDimension <- withDefault (arr Just  <<< parseDimension) Nothing -< x
 
     let regAddressOffset = read offset
         regSize = read size
@@ -188,13 +188,13 @@ register = atTag "register" >>>
 
     returnA -< Register{..}
 
-field
+parseField
   :: ArrowXml cat
   => cat (NTree XNode) Field
-field = atTag "field" >>>
+parseField = atTag "field" >>>
   proc x -> do
     fieldName <- textAtTag "name" -< x
-    fieldDimension <- withDefault (arr Just  <<< dimension) Nothing -< x
+    fieldDimension <- withDefault (arr Just  <<< parseDimension) Nothing -< x
     desc <- textAtTagOrEmpty "description" -< x
 
     bitOffsetMay <- withDefault (arr (Just . read) <<< textAtTag "bitOffset") Nothing -< x
