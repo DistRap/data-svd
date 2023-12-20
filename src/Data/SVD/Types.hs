@@ -114,8 +114,20 @@ data Cluster = Cluster {
   , clusterDescription   :: String
   , clusterAddressOffset :: Int
   , clusterRegisters     :: [Register]
+  -- unused, expansion not yet implemented
+  -- but also not quite present in any SVD we've seen
   , clusterNested        :: [Cluster]
   } deriving (Generic, Eq, Ord, Show)
+
+instance Default Cluster where
+  def = Cluster
+    { clusterName          = "defaultCluster"
+    , clusterDescription   = mempty
+    , clusterDimension     = Nothing
+    , clusterAddressOffset = 0
+    , clusterRegisters     = []
+    , clusterNested        = []
+    }
 
 instance Serialize Cluster
 

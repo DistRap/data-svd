@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeApplications #-}
 module DimSpec where
 
+import Control.Lens
 import Data.Default.Class
 import Data.SVD
 import Test.Hspec (Spec, describe, it, shouldBe)
@@ -9,7 +10,7 @@ spec :: Spec
 spec = describe "Data.SVD.Dim" $ do
   describe "expandField" $ do
     it "no dim" $
-      expandField def `shouldBe` mempty
+      expandField def `shouldBe` pure def
 
     it "sampleField0" $
       expandField sampleField0 `shouldBe` resultField0
@@ -24,6 +25,12 @@ spec = describe "Data.SVD.Dim" $ do
     it "sampleReg1" $
       expandRegister sampleReg1 `shouldBe` resultReg1
 
+  describe "expandDevice" $ do
+    it "sampleDev0" $
+      expandDevice sampleDev0 `shouldBe` resultDev0
+
+    it "sampleDev1" $
+      expandDevice sampleDev1 `shouldBe` resultDev1
 
 sampleDim0 =
   Dimension
@@ -134,3 +141,44 @@ resultReg1 =
       , regAddressOffset = 0x38
       }
   ]
+
+-- * Device
+
+samplePeriph0 =
+  def
+    { periphRegisters = pure $ sampleReg0 { regFields = pure sampleField0 }
+    }
+
+resultPeriph0 =
+  def
+    { periphRegisters = over (traverse . fields) (pure resultField0) resultReg0
+    }
+
+sampleDev0 = def { devicePeripherals = pure samplePeriph0 }
+resultDev0 = def { devicePeripherals = pure resultPeriph0 }
+
+-- ** With clusters
+
+sampleCluster0 =
+  def
+    { clusterRegisters = pure $ sampleReg1 { regFields = pure sampleField1 }
+    , clusterAddressOffset = 0x10
+    }
+
+samplePeriph1 =
+  def
+    { periphRegisters = pure $ sampleReg0 { regFields = pure sampleField0 }
+    , periphClusters = pure $ sampleCluster0
+    }
+
+resultPeriph1 =
+  def
+    { periphRegisters =
+        over (traverse . fields) (pure resultField0) resultReg0
+        ++ map
+            (over addressOffset (+0x10))
+            (over (traverse . fields) (pure resultField1) resultReg1)
+    }
+
+sampleDev1 = def { devicePeripherals = pure samplePeriph1 }
+resultDev1 = def { devicePeripherals = pure resultPeriph1 }

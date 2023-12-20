@@ -7,9 +7,10 @@ module Data.SVD.Dim
   , expandCluster
   , expandField
   , expandRegister
+  , expandDevice
   ) where
 
-import Control.Lens ((^.), set)
+import Control.Lens ((^.), set, over)
 import Data.SVD.Lens
 import Data.SVD.Types
 
@@ -28,7 +29,7 @@ expandDim
   -> [a]
 expandDim getOffset setOffset element =
   case element ^. dimension of
-    Nothing -> mempty
+    Nothing -> pure element
     Just dim ->
       let ixs = case dim ^. index of
             DimensionIndex_FromTo f t -> map show [f .. t]
@@ -65,3 +66,69 @@ expandCluster = expandDim (^. addressOffset) (set addressOffset)
 
 expandRegister :: Register -> [Register]
 expandRegister = expandDim (^. addressOffset) (set addressOffset)
+
+expandRegFields :: Register -> Register
+expandRegFields r =
+  set
+  fields
+  (concatMap expandField (r ^. fields))
+  r
+
+expandPeriphRegisters :: Peripheral -> Peripheral
+expandPeriphRegisters p =
+  set
+  registers
+  (concatMap expandRegister (p ^. registers))
+  p
+
+expandPeriphClusters :: Peripheral -> Peripheral
+expandPeriphClusters p =
+  set
+    clusters
+    mempty
+  $ set
+      registers
+      (let
+           expClusters =
+             concatMap
+               expandCluster
+               (p ^. clusters)
+        in
+          (p ^. registers)
+          ++ concatMap
+              eliminateCluster
+              expClusters
+      )
+      p
+
+-- | Turn expanded @Cluster@ into @Register@s
+-- adding its addressOffset to each registers addressOffset
+eliminateCluster :: Cluster -> [Register]
+eliminateCluster c =
+  map
+    (\r ->
+      over
+        addressOffset
+        (+(c ^. addressOffset))
+        r
+    )
+  $ c ^. registers
+
+-- | Expand all dimensions and clusters
+--
+-- In order
+-- - Expand and eliminate each cluster
+-- - Expand fields of each register
+-- - Expand each register
+expandDevice :: Device -> Device
+expandDevice d =
+  over
+    (peripherals . traverse)
+    expandPeriphRegisters
+    $ over
+        (peripherals . traverse . registers . traverse)
+        expandRegFields
+        $ over
+          (peripherals . traverse)
+          expandPeriphClusters
+          d
