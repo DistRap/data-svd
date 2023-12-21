@@ -1,7 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 
 module Data.SVD.Util
-  ( procFields
+  ( addReservedFields
+  , procFields
   , continuityCheck
   , mapPeriphs
   , mapRegs
@@ -30,7 +31,7 @@ module Data.SVD.Util
   , sortDeviceByNames
   ) where
 
-import Control.Lens (over, view)
+import Control.Lens (over, set, view)
 import Control.Monad (liftM2)
 import Data.Bits (Bits, shiftR, (.&.))
 import Data.SVD.Lens
@@ -45,7 +46,7 @@ import qualified Safe
 
 -- | Find holes in registers and create corresponding reserved fields for these
 --
--- First finds missing missing bits and then merges them to single reserved field
+-- First finds missing bits and then merges them to single reserved field
 procFields :: Register -> [Field]
 procFields Register{..} =
     dataIfSingleReserved
@@ -53,11 +54,11 @@ procFields Register{..} =
   $ sortByOffset (regFields ++ missingAsReserved)
   where
     missingAsReserved =
-      reserved'
+      mkReserved
       $ conts
       $ Data.Set.toList missing
 
-    reserved' =
+    mkReserved =
       map
         $ \(offset', width') ->
           Field
@@ -73,6 +74,12 @@ procFields Register{..} =
     conts x = case cont x of
       [] -> []
       s -> (head s, length s) : conts (drop (length s) x)
+
+    -- find longest increasing sequence
+    cont :: (Eq a, Num a) => [a] -> [a]
+    cont (x:y:xs) | x + 1 == y = x : cont (y:xs)
+    cont (x:_)  = [x]
+    cont [] = []
 
     missing = allRegs `Data.Set.difference` existing
 
@@ -96,13 +103,16 @@ procFields Register{..} =
       ]
     dataIfSingleReserved fs = fs
 
--- find longest increasing sequence
-cont :: (Eq a, Num a) => [a] -> [a]
-cont (x:y:xs) | x + 1 == y = x : cont (y:xs)
-cont (x:_)  = [x]
-cont [] = []
+-- | Fill in reserved fields for whole @Device@
+addReservedFields :: Device -> Device
+addReservedFields =
+  over
+    (peripherals . traverse . registers . traverse)
+    procRegister
+  where
+    procRegister r = set fields (procFields r) r
 
--- walk processed register fields top to bottom
+-- | Walk processed register fields top to bottom
 -- checking that the register is exactly n bits long
 continuityCheck :: Register -> Bool
 continuityCheck Register{..} = go regFields regSize

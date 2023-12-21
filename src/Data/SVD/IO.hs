@@ -22,7 +22,10 @@ data SVDSort
   deriving (Show)
 
 data SVDOptions = SVDOptions
-  { svdOptionsExpand :: Bool
+  { svdOptionsAddReservedFields :: Bool
+  -- ^ Fill in dummy reserved fields where
+  -- holes would be in registers
+  , svdOptionsExpand :: Bool
   -- ^ Expand dimensions and clusters
   , svdOptionsSort :: SVDSort
   -- ^ Sorting
@@ -30,7 +33,8 @@ data SVDOptions = SVDOptions
 
 instance Default SVDOptions where
   def = SVDOptions
-    { svdOptionsExpand = True
+    { svdOptionsAddReservedFields = True
+    , svdOptionsExpand = True
     , svdOptionsSort = SVDSort_SortByAddresses
     }
 
@@ -49,6 +53,10 @@ parseSVDOptions SVDOptions{..} f = do
             SVDSort_DontSort -> id
             SVDSort_SortByAddresses -> Data.SVD.Util.sortDeviceByAddresses
             SVDSort_SortByNames -> Data.SVD.Util.sortDeviceByNames
+        . Data.Bool.bool
+            id
+            Data.SVD.Util.addReservedFields
+            svdOptionsAddReservedFields
         . Data.Bool.bool
             id
             Data.SVD.Dim.expandDevice
