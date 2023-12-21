@@ -25,10 +25,15 @@ module Data.SVD.Util
   , getDevMemMap
   , registerNames
   , fieldNames
+  -- * Sorting
+  , sortDeviceByAddresses
+  , sortDeviceByNames
   ) where
 
+import Control.Lens (over, view)
 import Control.Monad (liftM2)
 import Data.Bits (Bits, shiftR, (.&.))
+import Data.SVD.Lens
 import Data.SVD.Types
 
 import qualified Data.Char
@@ -48,19 +53,19 @@ procFields Register{..} =
   $ sortByOffset (regFields ++ missingAsReserved)
   where
     missingAsReserved =
-      reserved
+      reserved'
       $ conts
       $ Data.Set.toList missing
 
-    reserved =
+    reserved' =
       map
-        $ \(offset, width) ->
+        $ \(offset', width') ->
           Field
             { fieldName = "_"
             , fieldDescription = "(Reserved)"
             , fieldDimension = Nothing
-            , fieldBitOffset = offset
-            , fieldBitWidth = width
+            , fieldBitOffset = offset'
+            , fieldBitWidth = width'
             , fieldReserved = True
             , fieldRegType = Nothing
             }
@@ -127,12 +132,12 @@ mapDevFields f d =
 
 -- | Get peripheral by groupName
 getPeriphByGroup :: String -> Device -> Peripheral
-getPeriphByGroup name dev =
-  case filterLowerBy name periphGroupName (devicePeripherals dev) of
-    [] -> error $ "getPeriphByGroup, peripheral " ++ name ++ " not found"
+getPeriphByGroup name' dev =
+  case filterLowerBy name' periphGroupName (devicePeripherals dev) of
+    [] -> error $ "getPeriphByGroup, peripheral " ++ name' ++ " not found"
     [p] -> p
     ps -> case filter (Data.Maybe.isNothing . periphDerivedFrom) ps of
-      [] -> error $ "getPeriphByGroup: No non-derived peripheral found for " ++ name
+      [] -> error $ "getPeriphByGroup: No non-derived peripheral found for " ++ name'
       [p] -> p
       (p:_xs) -> p
        -- TODO: warn?
@@ -140,15 +145,15 @@ getPeriphByGroup name dev =
 
 -- | Get peripheral by name
 getPeriph :: String -> Device -> Peripheral
-getPeriph name dev =
-  Safe.headNote ("getPeriph " ++ name)
-  . filterLowerBy name periphName $ devicePeripherals dev
+getPeriph name' dev =
+  Safe.headNote ("getPeriph " ++ name')
+  . filterLowerBy name' periphName $ devicePeripherals dev
 
 -- | Get peripheral by name iff found, Nothing otherwise
 getPeriphMay :: String -> Device -> Maybe Peripheral
-getPeriphMay name dev =
+getPeriphMay name' dev =
   Safe.headMay
-  . filterLowerBy name periphName $ devicePeripherals dev
+  . filterLowerBy name' periphName $ devicePeripherals dev
 
 -- | Get register of the peripheral by their names iff found, Nothing otherwise
 getPeriphRegMay :: String -> Peripheral -> Maybe Register
@@ -271,3 +276,31 @@ fieldNames rName pName dev =
   map
     fieldName
     $ getRegFields pName rName dev
+
+-- * Sorting
+
+-- | Sort everything by memory address
+sortDeviceByAddresses :: Device -> Device
+sortDeviceByAddresses =
+    over
+      peripherals
+      (Data.List.sortOn (view baseAddress))
+  . over
+      (peripherals . traverse . registers)
+      (Data.List.sortOn (view addressOffset))
+  . over
+      (peripherals . traverse . registers . traverse . fields)
+      (reverse . Data.List.sortOn (view bitOffset))
+
+-- | Sort everything by name
+sortDeviceByNames :: Device -> Device
+sortDeviceByNames =
+    over
+      peripherals
+      (Data.List.sortOn (view name))
+  . over
+      (peripherals . traverse . registers)
+      (Data.List.sortOn (view name))
+  . over
+      (peripherals . traverse . registers . traverse . fields)
+      (Data.List.sortOn (view name))
