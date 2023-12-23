@@ -5,15 +5,14 @@
 module Data.SVD.IO
   ( parseSVD
   , parseSVDOptions
-  , parseSVDPeripherals
   , SVDOptions(..)
   ) where
 
 import Data.Default.Class (Default(def))
 import Data.Hashable (Hashable)
-import Data.SVD.Types (Device, Peripheral)
+import Data.SVD.Types (Device)
 import GHC.Generics (Generic)
-import Text.XML.HXT.Core (readDocument, readString, runX, (>>>))
+import Text.XML.HXT.Core (readString, runX, (>>>))
 
 import qualified Data.Bool
 import qualified Data.ByteString.Char8
@@ -132,11 +131,3 @@ parseSVD
   :: String
   -> IO (Either String Device)
 parseSVD = parseSVDOptions def
-
-parseSVDPeripherals :: String -> IO (Either String [Peripheral])
-parseSVDPeripherals f = do
-  res <- runX (readDocument [] f >>> Data.SVD.Parse.svdPeripherals)
-  case res of
-    [] -> pure $ Left "No peripherals parsed"
-    [x] -> pure $ Right x
-    _ -> pure $ Left "Multiple devices parsed"
