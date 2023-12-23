@@ -4,6 +4,7 @@ module Data.SVD.Util
   ( addReservedFields
   , procFields
   , continuityCheck
+  , checkDeviceRegisterContinuity
   , mapPeriphs
   , mapRegs
   , mapFields
@@ -31,7 +32,7 @@ module Data.SVD.Util
   , sortDeviceByNames
   ) where
 
-import Control.Lens (over, set, view)
+import Control.Lens ((^.), over, set, view)
 import Control.Monad (liftM2)
 import Data.Bits (Bits, shiftR, (.&.))
 import Data.SVD.Lens
@@ -39,6 +40,7 @@ import Data.SVD.Types
 
 import qualified Data.Char
 import qualified Data.Bits.Pretty
+import qualified Data.Either
 import qualified Data.List
 import qualified Data.Maybe
 import qualified Data.Set
@@ -122,6 +124,88 @@ continuityCheck Register{..} = go regFields regSize
     | fieldBitOffset x + fieldBitWidth x == remainingBits
     = go xs (remainingBits - fieldBitWidth x)
   go _ _ = False
+
+-- | Walk processed register fields top to bottom
+-- checking that the register is exactly n bits long
+continuityCheckReg
+  :: Device
+  -> Peripheral
+  -> Register
+  -> Either String Register
+
+-- Some ignores
+-- TIM5.CNT is 32 bit but has an aliased UIFCPY field
+continuityCheckReg d p r
+  | d ^. name `elem` [ "STM32F730", "STM32F745", "STM32F750", "STM32F765"
+                     , "STM32F7x2", "STM32F7x3", "STM32F7x6", "STM32F7x7", "STM32F7x9" ]
+  && p ^. name == "TIM5" && r ^. name == "CNT" = pure r
+-- G4 TIM2.CCR5, might be a bug in stm32-rs
+continuityCheckReg d p r
+  | d ^. name `elem` [ "STM32G431xx", "STM32G441xx", "STM32G471xx", "STM32G473xx"
+                     , "STM32G474xx", "STM32G483xx", "STM32G484xx", "STM32G491xx", "STM32G4A1xx" ]
+  && p ^. name == "TIM2" && r ^. name == "CCR5" = pure r
+continuityCheckReg d p r
+  | d ^. name == "STM32H73x"
+  && p ^. name == "CRYP" && r ^. name == "K2LR" = pure r
+continuityCheckReg d p r
+  | (d ^. name == "STM32L0x2" || d ^. name == "STM32L0x3")
+  && p ^.name == "PWR" && r ^. name == "CR" = pure r
+continuityCheckReg d p r
+  | d ^. name == "STM32L4P5"
+  && p ^.name == "TIM15" && r ^. name == "SR" = pure r
+continuityCheckReg d p r
+  | d ^. name == "STM32L4P5"
+  && p ^.name == "SAI1" && r ^. name == "CR1" = pure r
+continuityCheckReg d p r
+  | d ^. name == "STM32L4P5"
+  && p ^.name == "FLASH" && r ^. name == "ECCR" = pure r
+continuityCheckReg d p r
+  | d ^. name == "STM32WB55"
+  && p ^.name == "TIM2" && r ^. name == "CNT" = pure r
+continuityCheckReg d p r =
+  go
+    ( reverse
+    $ Data.List.sortOn
+        (view bitOffset)
+        (r ^. fields)
+    )
+    (r ^. size)
+  where
+  go [] 0 = pure r
+
+  go (x:xs) remainingBits
+    | x ^. bitOffset + x ^. bitWidth == remainingBits
+    = go xs (remainingBits - (x ^. bitWidth))
+
+  go _xs remainingBits =
+    Left
+    $ "Continuity check failed with remaining bits: "
+    <> show remainingBits
+    <> " for device "
+    <> d ^. name
+    <> " for "
+    <> p ^. name
+    <> "."
+    <> r ^. name
+
+-- | Check all devices registers for continuity
+checkDeviceRegisterContinuity
+  :: Device
+  -> Either String Device
+checkDeviceRegisterContinuity d =
+  let
+    res =
+      concatMap
+        (\p ->
+          map
+            (continuityCheckReg d p)
+            (p ^. registers)
+        )
+      (devicePeripherals d)
+  in
+    case res of
+      _ | all Data.Either.isRight res -> pure d
+      _ | otherwise -> Left $ unlines $ Data.Either.lefts res
 
 mapPeriphs :: (Peripheral -> b) -> Device -> [b]
 mapPeriphs f Device{..} = map f devicePeripherals

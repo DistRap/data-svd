@@ -25,6 +25,8 @@ data SVDOptions = SVDOptions
   { svdOptionsAddReservedFields :: Bool
   -- ^ Fill in dummy reserved fields where
   -- holes would be in registers
+  , svdOptionsCheckContinuity :: Bool
+  -- ^ Check register continuity
   , svdOptionsExpand :: Bool
   -- ^ Expand dimensions and clusters
   , svdOptionsSort :: SVDSort
@@ -34,6 +36,7 @@ data SVDOptions = SVDOptions
 instance Default SVDOptions where
   def = SVDOptions
     { svdOptionsAddReservedFields = True
+    , svdOptionsCheckContinuity = True
     , svdOptionsExpand = True
     , svdOptionsSort = SVDSort_SortByAddresses
     }
@@ -47,8 +50,11 @@ parseSVDOptions SVDOptions{..} f = do
   case res of
     [] -> pure $ Left "No device parsed"
     [x] ->
-      pure
-        . pure
+          pure
+        . Data.Bool.bool
+            Right
+            Data.SVD.Util.checkDeviceRegisterContinuity
+            svdOptionsCheckContinuity
         . case svdOptionsSort of
             SVDSort_DontSort -> id
             SVDSort_SortByAddresses -> Data.SVD.Util.sortDeviceByAddresses
