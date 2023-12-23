@@ -34,10 +34,13 @@ library
                        Data.SVD.Util
   build-depends:       base >= 4.7 && < 5
                      , ansi-wl-pprint
+                     , bytestring
                      , containers
                      , cereal
                      , data-default-class
                      , Diff
+                     , directory
+                     , hashable
                      , hxt
                      , hxt-xpath
                      , lens
