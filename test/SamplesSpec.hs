@@ -7,7 +7,7 @@ import Data.Either
 import Data.SVD
 import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
 import Test.Hspec.Golden (defaultGolden)
-import Text.PrettyPrint.ANSI.Leijen (plain)
+import Prettyprinter (unAnnotate)
 
 import qualified Data.List
 
@@ -33,7 +33,7 @@ spec = describe "Golden" $ do
           Right x ->
             pure
             $ displayPretty
-            $ plain
+            $ unAnnotate
             $ ppDevice x
       pure $ defaultGolden "stm32f405" pretty
 
@@ -45,7 +45,7 @@ spec = describe "Golden" $ do
           Right x ->
             pure
             $ displayPretty
-            $ plain
+            $ unAnnotate
             $ ppList ppISR
             $ Data.List.sortOn
                 interruptValue
@@ -65,7 +65,7 @@ spec = describe "Golden" $ do
           Right x ->
             pure
             $ displayPretty
-            $ plain
+            $ unAnnotate
             $ ppList ppMem
             $ getDevMemMap x
       pure $ defaultGolden "stm32f405-memmap" pretty

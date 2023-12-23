@@ -42,31 +42,30 @@ module Data.SVD.Pretty
 import Data.Char (toLower)
 import Data.SVD.Types
 import Data.Word
-import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
+import Prettyprinter
+import Prettyprinter.Render.String
+import Prettyprinter.Render.Terminal (AnsiStyle, Color(..), color)
 
 import qualified Data.Bits.Pretty
 import qualified Data.SVD.Util
+import qualified Data.Text
+import qualified Prettyprinter.Render.Terminal
 
 -- * Helpers
 
-ppList :: (a -> Doc) -> [a] -> Doc
+ppList :: (a -> Doc AnsiStyle) -> [a] -> Doc AnsiStyle
 ppList pp x = vcat $ map pp x
 
-displayPretty :: Doc -> String
-displayPretty what =
-  displayS
-    (renderPretty
-       0.4
-       80
-       what
-    )
-    ""
+displayPretty :: Doc AnsiStyle -> String
+displayPretty =
+    Data.Text.unpack
+  . Prettyprinter.Render.Terminal.renderStrict
+  . layoutPretty defaultLayoutOptions
 
-displayCompact :: Doc -> String
-displayCompact what =
-  displayS
-    (renderCompact what)
-    ""
+displayCompact :: Doc AnsiStyle -> String
+displayCompact =
+    renderString
+  . layoutCompact
 
 -- * Shorthand
 
@@ -96,74 +95,88 @@ displayISRs = displayPretty . ppList ppISR
 
 -- * Pretty printers
 
-ppDevice :: Device -> Doc
+ppDevice :: Device -> Doc AnsiStyle
 ppDevice Device{..} =
-  (red $ string deviceName)
-  <$$> indent 2 (ppList ppPeriph devicePeripherals)
+  (annotate (color Red) $ pretty deviceName)
+  <> line
+  <> indent 2 (ppList ppPeriph devicePeripherals)
 
-ppPeriph :: Peripheral -> Doc
+ppPeriph :: Peripheral -> Doc AnsiStyle
 ppPeriph Peripheral{..} =
   hardline
-  <> (yellow $ string periphName)
-  <+> (white $ ppHex periphBaseAddress)
-  <+> (magenta $ string periphDescription)
-  <$$> indent 2 (ppList ppReg periphRegisters)
-  <//> (maybe empty (\x -> string "Derived from" <+> string x) periphDerivedFrom)
+  <> (annotate (color Yellow) $ pretty periphName)
+  <+> (annotate (color White) $ ppHex periphBaseAddress)
+  <+> (annotate (color Magenta) $ pretty periphDescription)
+  <> line
+  <> indent 2 (ppList ppReg periphRegisters)
+  <> maybe
+      mempty
+      (\x ->
+        indent 2
+         $   line
+         <>  pretty ("Derived from" :: String)
+         <+> pretty x
+      )
+      periphDerivedFrom
 
-ppReg :: Register -> Doc
+ppReg :: Register -> Doc AnsiStyle
 ppReg Register{..} =
   hardline
-  <> (blue $ string regName)
-  <+> (white $ ppHex regAddressOffset)
-  <+> (cyan $ char '-' <+> (string regDescription))
-  <$$> indent 2 (ppList ppField regFields)
+  <> (annotate (color Blue) $ pretty regName)
+  <+> (annotate (color White) $ ppHex regAddressOffset)
+  <+> (annotate (color Cyan) $ pretty '-' <+> (pretty regDescription))
+  <> line
+  <> indent 2 (ppList ppField regFields)
 
-ppHex :: Int -> Doc
-ppHex = text . Data.Bits.Pretty.formatHex
+ppHex :: Int -> Doc AnsiStyle
+ppHex = pretty . Data.Bits.Pretty.formatHex
 
 rpad :: Int -> String -> String
 rpad m xs = take m $ xs ++ repeat ' '
 
-ppField :: Field -> Doc
+ppField :: Field -> Doc AnsiStyle
 ppField Field{..} =
-  (green $ string $ rpad 25 fieldName)
-  <+> string "::"
+  (annotate (color Green) $ pretty $ rpad 25 fieldName)
+  <+> pretty ("::" :: String)
   <+> ppWidthPad 7 fieldBitWidth
-  <+> cyan (string $ " -- " ++ fieldDescription)
+  <+> annotate
+        (color Cyan)
+        (pretty $ " -- " ++ fieldDescription)
 
 ppWidthPad
   :: Int
   -> Int
-  -> Doc
-ppWidthPad m 1 = string $ rpad m "Bit"
-ppWidthPad m x = string $ rpad m $ "Bits " ++ show x
+  -> Doc AnsiStyle
+ppWidthPad m 1 = pretty $ rpad m "Bit"
+ppWidthPad m x = pretty $ rpad m $ "Bits " ++ show x
 
 -- ** Interrupts
 
-ppDevISR :: Device -> Doc
+ppDevISR :: Device -> Doc AnsiStyle
 ppDevISR Device{..} = ppList ppPeriphISR devicePeripherals
 
-ppPeriphISR :: Peripheral -> Doc
+ppPeriphISR :: Peripheral -> Doc AnsiStyle
 ppPeriphISR Peripheral{..} =
   indent 2 (ppList ppISR periphInterrupts)
 --  <//> (maybe empty (\x -> string "Derived from" <+> string x) periphDerivedFrom)
 
-ppISR :: Interrupt -> Doc
+ppISR :: Interrupt -> Doc AnsiStyle
 ppISR Interrupt{..} = indent 2 (
   "|"
-  <+> string interruptName
-  <> " -- " <> int interruptValue <+> string interruptDescription
+  <+> pretty interruptName
+  <> " -- " <> pretty interruptValue <+> pretty interruptDescription
   )
 
 -- ** Terse output
 
-ppDeviceInfo :: Device -> Doc
+ppDeviceInfo :: Device -> Doc AnsiStyle
 ppDeviceInfo Device{..} =
-  (red $ string deviceName)
-  <$$> indent 2 (ppList ppPeriphName devicePeripherals)
+  (annotate (color Red) $ pretty deviceName)
+  <> line
+  <> indent 2 (ppList ppPeriphName devicePeripherals)
 
-ppPeriphName :: Peripheral -> Doc
-ppPeriphName Peripheral{..} = (yellow $ string periphName)
+ppPeriphName :: Peripheral -> Doc AnsiStyle
+ppPeriphName Peripheral{..} = (annotate (color Yellow) $ pretty periphName)
 
 shortField :: Field -> String
 shortField Field{..} = unwords [
@@ -175,13 +188,14 @@ shortField Field{..} = unwords [
 
 -- ** MemMap
 
-ppMem :: (String, String) -> Doc
+ppMem :: (String, String) -> Doc AnsiStyle
 ppMem (addr, periph) =
      name <> " :: Integer"
-  </> name
+  <> line
+  <> name
   <> " = "
-  <> string addr
-  where name = string (map toLower periph) <> "_periph_base"
+  <> pretty addr
+  where name = pretty (map toLower periph) <> "_periph_base"
 
 -- | Print currently set (non-zero) fields
 printSetFields :: (Show a, Eq a, Num a) => [(a, Field)] -> String
