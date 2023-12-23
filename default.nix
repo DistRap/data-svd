@@ -2,4 +2,5 @@
 let
   src = pkgs.nix-gitignore.gitignoreSource [ ] ./.;
 in
-  pkgs.haskellPackages.callCabal2nix "data-svd" src { }
+  pkgs.haskell.lib.buildFromSdist
+    (pkgs.haskellPackages.callCabal2nix "data-svd" src { })
