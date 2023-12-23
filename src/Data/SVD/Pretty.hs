@@ -13,7 +13,7 @@ module Data.SVD.Pretty
   , displayPeripheral
   , displayRegister
   , displayMemMap
-  , displayCompactMemMap
+  , displayMemMapCompact
   , displayDevISR
   , displayISRs
   -- * Pretty printers
@@ -85,8 +85,8 @@ displayRegister = displayPretty . ppReg
 displayMemMap :: [(String, String)] -> String
 displayMemMap = displayPretty . ppList ppMem
 
-displayCompactMemMap :: [(String, String)] -> String
-displayCompactMemMap = displayCompact . ppList ppMem
+displayMemMapCompact :: [(String, String)] -> String
+displayMemMapCompact = displayCompact . ppList ppMem
 
 displayDevISR :: Device -> String
 displayDevISR = displayPretty . ppDevISR
