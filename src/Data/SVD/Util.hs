@@ -30,6 +30,8 @@ module Data.SVD.Util
   -- * Sorting
   , sortDeviceByAddresses
   , sortDeviceByNames
+  -- * Interrupts
+  , fillMissingInterrupts
   ) where
 
 import Control.Lens ((^.), over, set, view)
@@ -398,3 +400,26 @@ sortDeviceByNames =
   . over
       (peripherals . traverse . registers . traverse . fields)
       (Data.List.sortOn (view name))
+
+-- * Interrupts
+
+fillMissingInterrupts
+  :: [Interrupt]
+  -> [Interrupt]
+fillMissingInterrupts isrs =
+  isrs
+  ++ (map filler $ missingInterrupts)
+  where
+    filler x = Interrupt {
+       interruptName = "Undefined" ++ show x
+     , interruptValue = x
+     , interruptDescription = "Undefined interrupt (padding only)"
+     }
+    missingInterrupts =
+      let
+        vals = map interruptValue isrs
+      in
+          Data.Set.toList
+        $ Data.Set.difference
+            (Data.Set.fromList [0 .. maximum vals])
+            (Data.Set.fromList vals)

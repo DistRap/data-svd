@@ -16,6 +16,8 @@ extra-source-files:
     LICENSE
     README.md
     .golden/stm32f405/golden
+    .golden/stm32f405-isrs/golden
+    .golden/stm32f405-memmap/golden
     test/samples/stm32f405.svd
 
 extra-doc-files:

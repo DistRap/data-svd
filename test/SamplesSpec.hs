@@ -9,6 +9,8 @@ import Test.Hspec (Spec, describe, it, shouldBe, shouldSatisfy)
 import Test.Hspec.Golden (defaultGolden)
 import Text.PrettyPrint.ANSI.Leijen (plain)
 
+import qualified Data.List
+
 spec :: Spec
 spec = describe "Golden" $ do
   describe "stm32f405.svd" $ do
@@ -34,3 +36,36 @@ spec = describe "Golden" $ do
             $ plain
             $ ppDevice x
       pure $ defaultGolden "stm32f405" pretty
+
+    it "matches golden pretty printed device isrs" $ do
+      pretty <-
+        parseSVD "./test/samples/stm32f405.svd"
+        >>= \case
+          Left e -> error "Failed parsing"
+          Right x ->
+            pure
+            $ displayPretty
+            $ plain
+            $ ppList ppISR
+            $ Data.List.sortOn
+                interruptValue
+            $ fillMissingInterrupts
+            $ Data.List.nubBy
+                (\x y -> interruptValue x == interruptValue y)
+            $ concatMap
+                periphInterrupts
+                (devicePeripherals x)
+      pure $ defaultGolden "stm32f405-isrs" pretty
+
+    it "matches golden pretty printed device memory map" $ do
+      pretty <-
+        parseSVD "./test/samples/stm32f405.svd"
+        >>= \case
+          Left e -> error "Failed parsing"
+          Right x ->
+            pure
+            $ displayPretty
+            $ plain
+            $ ppList ppMem
+            $ getDevMemMap x
+      pure $ defaultGolden "stm32f405-memmap" pretty
