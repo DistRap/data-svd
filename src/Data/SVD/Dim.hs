@@ -133,14 +133,13 @@ eliminateCluster c =
 -- - Expand fields of each register
 -- - Expand each register
 expandDevice :: Device -> Device
-expandDevice d =
-  over
-    (peripherals . traverse)
-    expandPeriphRegisters
-    $ over
-        (peripherals . traverse . registers . traverse)
-        expandRegFields
-        $ over
-          (peripherals . traverse)
-          expandPeriphClusters
-          d
+expandDevice =
+    over
+      (peripherals . traverse)
+      expandPeriphRegisters
+  . over
+      (peripherals . traverse . registers . traverse)
+      expandRegFields
+  . over
+      (peripherals . traverse)
+      expandPeriphClusters

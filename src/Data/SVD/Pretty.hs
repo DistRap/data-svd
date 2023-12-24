@@ -103,30 +103,37 @@ ppDevice Device{..} =
 
 ppPeriph :: Peripheral -> Doc AnsiStyle
 ppPeriph Peripheral{..} =
-  hardline
-  <> (annotate (color Yellow) $ pretty periphName)
-  <+> (annotate (color White) $ ppHex periphBaseAddress)
-  <+> (annotate (color Magenta) $ pretty periphDescription)
-  <> line
-  <> indent 2 (ppList ppReg periphRegisters)
-  <> maybe
-      mempty
-      (\x ->
-        indent 2
-         $   line
-         <>  pretty ("Derived from" :: String)
-         <+> pretty x
-      )
-      periphDerivedFrom
+      hardline
+  <>  annotate (color Yellow)
+        (pretty periphName)
+  <+> annotate (color White)
+        (ppHex periphBaseAddress)
+  <+> annotate (color Magenta)
+        (pretty periphDescription)
+  <>  line
+  <>  indent 2 (ppList ppReg periphRegisters)
+  <>  maybe
+        mempty
+        (\x ->
+          indent 2
+           $   line
+           <>  pretty ("Derived from" :: String)
+           <+> pretty x
+        )
+        periphDerivedFrom
 
 ppReg :: Register -> Doc AnsiStyle
 ppReg Register{..} =
   hardline
-  <> (annotate (color Blue) $ pretty regName)
-  <+> (annotate (color White) $ ppHex regAddressOffset)
-  <+> (annotate (color Cyan) $ pretty '-' <+> (pretty regDescription))
-  <> line
-  <> indent 2 (ppList ppField regFields)
+  <>  annotate (color Blue)
+        (pretty regName)
+  <+> annotate (color White)
+        (ppHex regAddressOffset)
+  <+> annotate (color Cyan)
+        (pretty '-' <+> (pretty regDescription))
+  <>  line
+  <>  indent 2
+        (ppList ppField regFields)
 
 ppHex :: Int -> Doc AnsiStyle
 ppHex = pretty . Data.Bits.Pretty.formatHex
@@ -136,7 +143,8 @@ rpad m xs = take m $ xs ++ repeat ' '
 
 ppField :: Field -> Doc AnsiStyle
 ppField Field{..} =
-  (annotate (color Green) $ pretty $ rpad 25 fieldName)
+      annotate (color Green)
+        (pretty $ rpad 25 fieldName)
   <+> pretty ("::" :: String)
   <+> ppWidthPad 7 fieldBitWidth
   <+> annotate
@@ -161,22 +169,28 @@ ppPeriphISR Peripheral{..} =
 --  <//> (maybe empty (\x -> string "Derived from" <+> string x) periphDerivedFrom)
 
 ppISR :: Interrupt -> Doc AnsiStyle
-ppISR Interrupt{..} = indent 2 (
-  "|"
-  <+> pretty interruptName
-  <> " -- " <> pretty interruptValue <+> pretty interruptDescription
-  )
+ppISR Interrupt{..} =
+  indent 2
+    (
+          "|"
+      <+> pretty interruptName
+      <>  " -- " <> pretty interruptValue <+> pretty interruptDescription
+    )
 
 -- ** Terse output
 
 ppDeviceInfo :: Device -> Doc AnsiStyle
 ppDeviceInfo Device{..} =
-  (annotate (color Red) $ pretty deviceName)
+     annotate (color Red)
+       (pretty deviceName)
   <> line
-  <> indent 2 (ppList ppPeriphName devicePeripherals)
+  <> indent 2
+       (ppList ppPeriphName devicePeripherals)
 
 ppPeriphName :: Peripheral -> Doc AnsiStyle
-ppPeriphName Peripheral{..} = (annotate (color Yellow) $ pretty periphName)
+ppPeriphName Peripheral{..} =
+  annotate (color Yellow)
+    (pretty periphName)
 
 shortField :: Field -> String
 shortField Field{..} = unwords [
@@ -195,11 +209,15 @@ ppMem (addr, periph) =
   <> name
   <> " = "
   <> pretty addr
-  where name = pretty (map toLower periph) <> "_periph_base"
+  where
+    name = pretty (map toLower periph) <> "_periph_base"
 
 -- | Print currently set (non-zero) fields
 printSetFields :: (Show a, Eq a, Num a) => [(a, Field)] -> String
-printSetFields = unlines . map printSetField . Data.SVD.Util.filterSet
+printSetFields =
+    unlines
+  . map printSetField
+  . Data.SVD.Util.filterSet
 
 printSetField :: (Show a, Eq a, Num a) => (a, Field) -> String
 printSetField (_, f) | fieldBitWidth f == 1 = concat ["Bit ", show (fieldBitOffset f), " ", fieldName f]
