@@ -3,7 +3,7 @@ name:                data-svd
 version:             0.1.0.0
 synopsis:            SVD (System view description) file handling
 description:         Parse, print, diff SVD files
-homepage:            https://github.com/distrap/data-svd
+homepage:            https://github.com/DistRap/data-svd
 license:             BSD-3-Clause
 license-file:        LICENSE
 author:              sorki
@@ -81,4 +81,4 @@ test-suite spec
 
 source-repository head
   type:     git
-  location: https://github.com/distrap/data-svd
+  location: https://github.com/DistRap/data-svd
