@@ -5,6 +5,8 @@
 [![Dependencies](https://img.shields.io/hackage-deps/v/data-svd?label=Dependencies)](https://packdeps.haskellers.com/feed?needle=data-svd)
 
 SVD (System view description) file handling.
+
 Parsing, pretty printing, diffing and various utilities.
+
 Mostly targets STM32 SVD files but other ones should work just as well, file
 a PR/Issue if not.
