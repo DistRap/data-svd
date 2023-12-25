@@ -1,13 +1,17 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Data.SVD.Pretty.Explore
   ( exploreRegister
   ) where
 
 import Data.Bits (FiniteBits)
 import Data.SVD.Types (Register(..), Field(..))
-import Data.Word (Word8, Word32)
+import Data.Word (Word8, Word16, Word32)
+import Prettyprinter
+import Prettyprinter.Render.Terminal (AnsiStyle, Color(..), bold, color)
 import Text.Printf (PrintfArg)
 
 import qualified Data.Bits.Pretty
+import qualified Data.SVD.Pretty
 import qualified Data.SVD.Pretty.Box
 import qualified Data.SVD.Util
 
@@ -21,64 +25,110 @@ exploreRegister
   -> Int
   -> Register
   -> IO ()
-exploreRegister x addr reg = do
-  putStrLn
-    $ "Register " ++ regName reg
-  putStrLn
-    $ "- " ++ regDescription reg
+exploreRegister x addr reg =
+    putStrLn
+  $ Data.SVD.Pretty.displayPretty
+  $ exploreRegister' x addr reg
 
-  let addrW32 =
-        Data.Bits.Pretty.showHex
-          (fromIntegral addr :: Word32)
-      addrWithOffset =
-        Data.Bits.Pretty.showHex
-          (fromIntegral (regAddressOffset reg) :: Word8)
-
-  putStrLn
-    $  "- Address "
-    <> addrW32
-    <> " (including offset "
-    <> addrWithOffset
-    <> ")"
-  putStrLn ""
-
-  case x of
-    0 -> putStrLn "(Just zeros)"
-    _ -> do
-
-      putStrLn
-        $ Data.Bits.Pretty.showDec x
-      putStrLn
-        $ Data.Bits.Pretty.showHex x
-      putStrLn
-        $ Data.Bits.Pretty.showBin x
-      putStrLn
-        $  "0b"
-        <> Data.Bits.Pretty.showBinGroups 4 x
-
-      putStrLn
-        $ printSetFields
-        $ Data.SVD.Util.getFieldValues
-            x
-            (regFields reg)
-
-  putStrLn ""
-  Data.SVD.Pretty.Box.renderFields
-    $ Data.SVD.Util.getFieldValues
-        x
-        (regFields reg)
+exploreRegister'
+  :: ( PrintfArg a
+     , FiniteBits a
+     , Show a
+     , Integral a
+     )
+  => a
+  -> Int
+  -> Register
+  -> Doc AnsiStyle
+exploreRegister' x addr reg =
+      "Register"
+  <+> annotate
+        (bold <> color Red)
+        (pretty $ regName reg)
+  <>  line
+  <>  "-"
+  <+> annotate
+        (color Magenta)
+        (pretty (regDescription reg))
+  <>  line
+  <>  "- Address"
+  <+> annotate
+        (color Blue)
+        (pretty
+          (Data.Bits.Pretty.showHex
+            (fromIntegral addr :: Word32)
+          )
+        )
+  <+> parens
+        (  "including offset "
+        <> annotate
+             (color Blue)
+             (pretty
+               (Data.Bits.Pretty.showHex
+                 (fromIntegral (regAddressOffset reg) :: Word8)
+               )
+             )
+        )
+  <> line
+  <> line
+  <> case x of
+    0 -> "(Just zeros)"
+    _ ->
+      vsep
+      [ annotate
+          (color Green)
+          (    "DEC"
+           <+> pretty
+                 (Data.Bits.Pretty.showDec x)
+          )
+      , annotate
+          (color Cyan)
+          (    "HEX"
+           <+> pretty
+                 (Data.Bits.Pretty.showHex x)
+          )
+      , annotate
+          (color White)
+          (   "BIN"
+          <+> pretty
+                (Data.Bits.Pretty.showBin x)
+          )
+      , annotate
+          (color Yellow)
+          (   "BIN"
+          <+> "0b"
+          <> pretty
+               (Data.Bits.Pretty.showBinGroups 4 x)
+          )
+      , prettySetFields
+          (Data.SVD.Util.getFieldValues
+             x
+             (regFields reg)
+          )
+      ]
+  <> line
+  <> line
+  <> pretty
+       (Data.SVD.Pretty.Box.renderFields
+          $ Data.SVD.Util.getFieldValues
+              x
+              (regFields reg)
+       )
 
 -- | Print currently set (non-zero) fields
-printSetFields
+prettySetFields
   :: ( Show a
      , Eq a
      , Num a
+     , FiniteBits a
+     , PrintfArg a
+     , Integral a
      )
   => [(a, Field)]
-  -> String
-printSetFields =
-    unlines
-  . map printSetField
+  -> Doc AnsiStyle
+prettySetFields =
+    vsep
+  . map prettySetField
   . filterSet
   where
     -- | Filter fields with non zero value
@@ -90,28 +140,47 @@ printSetFields =
       -> [(a, Field)]
     filterSet = filter ((/= 0) . fst)
 
-printSetField
+prettySetField
   :: ( Show a
      , Eq a
      , Num a
+     , FiniteBits a
+     , PrintfArg a
+     , Integral a
      )
   => (a, Field)
-  -> String
-printSetField (_, f) | fieldBitWidth f == 1 =
-  concat
+  -> Doc AnsiStyle
+prettySetField (_, f) | fieldBitWidth f == 1 =
+  hcat
     [ "Bit "
-    , show (fieldBitOffset f)
+    , pretty (fieldBitOffset f)
     , " "
-    , fieldName f
+    , annotate
+        (color Cyan)
+        (pretty $ fieldName f)
     ]
-printSetField (v, f) | otherwise =
-  concat
+prettySetField (v, f) | otherwise =
+  hcat
     [ "Bits ["
-    , show (fieldBitOffset f)
+    , pretty (fieldBitOffset f)
     , ":"
-    , show (fieldBitOffset f + fieldBitWidth f - 1)
+    , pretty (fieldBitOffset f + fieldBitWidth f - 1)
     , "]"
     , " "
-    , fieldName f
-    , " value ", show v
+    , annotate
+        (color Cyan)
+        (pretty $ fieldName f)
+    , " value "
+    , annotate
+        (color Magenta)
+        (pretty $ showFittingSize v)
     ]
+  where
+    showFittingSize x | fromIntegral x <= (maxBound :: Word8) =
+      Data.Bits.Pretty.showHex8 (fromIntegral x)
+    showFittingSize x | fromIntegral x <= (maxBound :: Word16) =
+      Data.Bits.Pretty.showHex16 (fromIntegral x)
+    showFittingSize x | fromIntegral x <= (maxBound :: Word32) =
+      Data.Bits.Pretty.showHex32 (fromIntegral x)
+    showFittingSize x | otherwise =
+      Data.Bits.Pretty.showHex x

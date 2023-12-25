@@ -7,11 +7,14 @@ module Data.SVD.Pretty.Box
 import Data.Bits (Bits())
 import Data.SVD.Types (Field(..))
 import Data.Word (Word8, Word16, Word32, Word64)
+import Prettyprinter
+import Prettyprinter.Render.Terminal (Color(..), color)
 import Text.PrettyPrint.Boxes (Box, (//))
 import qualified Text.PrettyPrint.Boxes
 
 import qualified Data.List
 import qualified Data.Bits.Pretty
+import qualified Data.SVD.Pretty
 
 -- | Render fields as table using boxes
 -- If table would be too wide split it into two tables
@@ -21,20 +24,28 @@ renderFields
      , Show a
      , Integral a)
   => [(a, Field)]
-  -> IO ()
+  -> String
 renderFields fs | headerSize >= 80 = do
-  putStrLn "MSB"
-  putStrLn
-    $ Text.PrettyPrint.Boxes.render
-    $ table
-    $ remap
-    $ takeBits 16 fs
-  putStrLn "LSB"
-  putStrLn
-    $ Text.PrettyPrint.Boxes.render
-    $ table
-    $ remap
-    $ dropBits 16 fs
+     Data.SVD.Pretty.displayPretty
+       (  annotate (color Yellow)
+            (pretty "MSB")
+       <> line
+       )
+  <> Text.PrettyPrint.Boxes.render
+       ( table
+       . remap
+       $ takeBits 16 fs
+       )
+  <> Data.SVD.Pretty.displayPretty
+       (  annotate (color Magenta)
+            (pretty "LSB")
+       <> line
+       )
+  <> Text.PrettyPrint.Boxes.render
+       ( table
+       . remap
+       $ dropBits 16 fs
+       )
   where
     headerSize =
       sum
@@ -43,8 +54,7 @@ renderFields fs | headerSize >= 80 = do
           fs
 
 renderFields fs | otherwise =
-    putStrLn
-  . Text.PrettyPrint.Boxes.render
+    Text.PrettyPrint.Boxes.render
   . table
   . remap
   $ fs
@@ -83,10 +93,10 @@ fmtColumn items =
           items
         )
   // vSepDeco
-  where width = maximum $ map length items
+  where width' = maximum $ map length items
         vSepDeco =
           Text.PrettyPrint.Boxes.text
-          $ replicate width '-'
+          $ replicate width' '-'
 
 remap
   :: ( Integral x
