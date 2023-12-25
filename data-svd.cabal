@@ -1,6 +1,6 @@
 cabal-version:       2.2
 name:                data-svd
-version:             0.1.0.0
+version:             0.1.1.0
 synopsis:            SVD (System view description) file handling
 description:         Parse, print, diff SVD files
 homepage:            https://github.com/DistRap/data-svd
