@@ -33,7 +33,7 @@ showBin x =
     )
     x
 
--- | Format number using decimal
+-- | Format number using decimal notation
 showDec :: (PrintfArg t, FiniteBits t) => t -> String
 showDec x =
   printf ("%0" ++ (show decSize) ++ "u") x
