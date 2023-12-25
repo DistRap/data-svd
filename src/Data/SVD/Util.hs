@@ -21,9 +21,7 @@ module Data.SVD.Util
   , getRegFields
   , getFieldVal
   , getFieldValues
-  , getProcdFieldValues
   , anyReservedSet
-  , filterSet
   , getDevMemMap
   , registerNames
   , fieldNames
@@ -342,17 +340,9 @@ getFieldVal x f = (x `shiftR` fieldBitOffset f) .&. (2 ^ fieldBitWidth f - 1)
 getFieldValues :: (Bits a, Num a) => a -> [Field] -> [(a, Field)]
 getFieldValues x fs = zip (map (getFieldVal x) fs) fs
 
--- | Same as `getFieldValues` but with processed fields (reserved fields included)
-getProcdFieldValues :: (Bits a, Num a) => a -> Register -> [(a, Field)]
-getProcdFieldValues x fs = getFieldValues x $ procFields fs
-
 -- | Check if any reserved field has value other than 0
 anyReservedSet :: (Eq a, Num a) => [(a, Field)] -> Bool
 anyReservedSet = any (\(val, f) -> val /= 0 && fieldReserved f)
-
--- | Filter fields with non zero value
-filterSet :: (Eq a, Num a) => [(a, Field)] -> [(a, Field)]
-filterSet = filter ((/= 0) . fst)
 
 -- | Get memory map of the device according to its perhiperal addresses
 getDevMemMap :: Device -> [(String, String)]

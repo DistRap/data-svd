@@ -34,9 +34,12 @@ library
                        Data.SVD.Lens
                        Data.SVD.Parse
                        Data.SVD.Pretty
+                       Data.SVD.Pretty.Box
+                       Data.SVD.Pretty.Explore
                        Data.SVD.Types
                        Data.SVD.Util
   build-depends:       base >= 4.7 && < 5
+                     , boxes
                      , bytestring
                      , containers
                      , cereal

@@ -30,24 +30,16 @@ module Data.SVD.Pretty
   , shortField
   -- ** MemMap
   , ppMem
-  -- * Who knows
-  , printSetFields
-  , printSetField
-  , showField
-  , fieldRange
-  , hexFieldVal
   )
   where
 
 import Data.Char (toLower)
 import Data.SVD.Types
-import Data.Word
 import Prettyprinter
 import Prettyprinter.Render.String
 import Prettyprinter.Render.Terminal (AnsiStyle, Color(..), color)
 
 import qualified Data.Bits.Pretty
-import qualified Data.SVD.Util
 import qualified Data.Text
 import qualified Prettyprinter.Render.Terminal
 
@@ -212,48 +204,4 @@ ppMem (addr, periph) =
   where
     name = pretty (map toLower periph) <> "_periph_base"
 
--- | Print currently set (non-zero) fields
-printSetFields :: (Show a, Eq a, Num a) => [(a, Field)] -> String
-printSetFields =
-    unlines
-  . map printSetField
-  . Data.SVD.Util.filterSet
 
-printSetField :: (Show a, Eq a, Num a) => (a, Field) -> String
-printSetField (_, f) | fieldBitWidth f == 1 = concat ["Bit ", show (fieldBitOffset f), " ", fieldName f]
-printSetField (v, f) | otherwise = concat [
-    "Bits ["
-  , show (fieldBitOffset f)
-  , ":"
-  , show (fieldBitOffset f + fieldBitWidth f - 1)
-  , "]"
-  , " "
-  , fieldName f
-  , " value ", show v]
-
--- | Show `Field` with its range, e.g BRR[15:0] (16 bit wide)
-showField :: Field -> String
-showField f@Field{..} | fieldReserved = "◦" ++ (fieldRange f)
-showField f@Field{..} | otherwise = fieldName ++ (fieldRange f)
-
--- | Datasheeeet like
-fieldRange :: Field -> String
-fieldRange Field{..} | fieldBitWidth == 1 = ""
-fieldRange Field{..} | otherwise = concat ["[", show $ fieldBitWidth - 1, ":0]"]
-
--- | Format field value in hex, padded according to `fieldBitWidth`
-hexFieldVal :: (Integral x, Show x) => Field -> x -> String
-hexFieldVal _ 0 = "0"
-hexFieldVal f x | fieldBitWidth f ==  1 = showBit x
-  where
-    showBit 0 = "0"
-    showBit 1 = "1"
-    showBit y = error $ "Not a bit: " ++ show y
-hexFieldVal f x | fieldBitWidth f <=  8 =
-  Data.Bits.Pretty.showHex (fromIntegral x :: Word8)
-hexFieldVal f x | fieldBitWidth f <= 16 =
-  Data.Bits.Pretty.showHex (fromIntegral x :: Word16)
-hexFieldVal f x | fieldBitWidth f <= 32 =
-  Data.Bits.Pretty.showHex (fromIntegral x :: Word32)
-hexFieldVal _ x | otherwise =
-  Data.Bits.Pretty.showHex (fromIntegral x :: Word64)
