@@ -2,9 +2,10 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RecordWildCards #-}
 
-module Data.SVD.Parse where
-
-import Safe
+module Data.SVD.Parse
+  ( svd
+  )
+  where
 
 import Control.Arrow.ArrowList
 import qualified Data.Char as Char
@@ -13,6 +14,8 @@ import Data.Tree.NTree.TypeDefs
 import Text.XML.HXT.Core
 
 import Data.SVD.Types
+
+import qualified Safe
 
 -- atTag doesn't uses deep here
 atTag :: ArrowXml cat => String -> cat (NTree XNode) XmlTree
@@ -30,16 +33,6 @@ textAtTagOrEmpty tag = withDefault (text <<< atTag tag) ""
 att :: ArrowXml cat => String -> cat XmlTree String
 att  = getAttrValue
 
--- nonempty attr value
-attNE :: ArrowXml cat => String -> cat XmlTree String
-attNE x = getAttrValue x >>> isA (/= "")
-
-attMaybe :: ArrowXml cat => String -> String -> cat (NTree XNode) (Maybe String)
-attMaybe attname tagname =
-  withDefault
-    (arr Just <<< attNE attname <<< atTag tagname)
-    Nothing
-
 filterCrap :: String -> String
 filterCrap =
   unwords
@@ -47,7 +40,7 @@ filterCrap =
   . filter (\c -> Char.ord c < 127)
   . filter ( not . (`elem` ['\n', '\t', '\r']))
 
--- svd parser
+-- | SVD XML parser
 svd :: ArrowXml cat => cat (NTree XNode) Device
 svd = atTag "device" >>>
   proc x -> do
@@ -71,13 +64,6 @@ svd = atTag "device" >>>
     devicePeripherals <- listA parsePeripheral <<< atTag "peripherals" -< x
 
     returnA -< Device{..}
-
--- loose version of svd that doesn't require device properties
-svdPeripherals :: ArrowXml cat => cat (NTree XNode) [Peripheral]
-svdPeripherals = atTag "device" >>>
-  proc x -> do
-    devicePeripherals <- listA parsePeripheral <<< atTag "peripherals" -< x
-    returnA -< devicePeripherals
 
 parsePeripheral :: ArrowXml cat => cat (NTree XNode) Peripheral
 parsePeripheral = atTag "peripheral" >>>
@@ -220,7 +206,7 @@ parseField = atTag "field" >>>
     returnA -< Field{..}
     where
       splitRange :: String -> (Int, Int)
-      splitRange r = (readNote "splitRange" $ takeWhile (/=':') raw,
-                      readNote "splitRange" $ drop 1 $ dropWhile (/=':') raw)
+      splitRange r = (Safe.readNote "splitRange" $ takeWhile (/=':') raw,
+                      Safe.readNote "splitRange" $ drop 1 $ dropWhile (/=':') raw)
         where
           raw = drop 1 $ init r
