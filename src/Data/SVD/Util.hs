@@ -144,6 +144,10 @@ continuityCheckReg d p r
   | d ^. name `elem` [ "STM32G431xx", "STM32G441xx", "STM32G471xx", "STM32G473xx"
                      , "STM32G474xx", "STM32G483xx", "STM32G484xx", "STM32G491xx", "STM32G4A1xx" ]
   && p ^. name == "TIM2" && r ^. name == "CCR5" = pure r
+-- F101, F103 TIM10.CCMR1_Output aliased OC1FE field
+continuityCheckReg d p r
+  | d ^. name `elem` [ "STM32F101", "STM32F103" ]
+  && p ^. name == "TIM10" && r ^. name == "CCMR1_Output" = pure r
 continuityCheckReg d p r
   | d ^. name == "STM32H73x"
   && p ^. name == "CRYP" && r ^. name == "K2LR" = pure r
