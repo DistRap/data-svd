@@ -136,28 +136,31 @@ continuityCheckReg
 -- Some ignores
 -- TIM2.CNT, TIM5.CNT is 32 bit but has an aliased UIFCPY field
 continuityCheckReg d p r
-  | d ^. name `elem` [ "STM32F730", "STM32F745", "STM32F750", "STM32F765"
-                     , "STM32F7x2", "STM32F7x3", "STM32F7x6", "STM32F7x7", "STM32F7x9" ]
+  | (   "STM32F7" `Data.List.isPrefixOf` (d ^. name)
+     || "STM32U5" `Data.List.isPrefixOf` (d ^. name)
+     || "STM32H7" `Data.List.isPrefixOf` (d ^. name)
+    )
   && p ^. name `elem` [ "TIM2", "TIM5" ]
   && r ^. name == "CNT" = pure r
 -- similar for Gs
 --
 continuityCheckReg d p r
-  | d ^. name `elem` [ "STM32G431xx", "STM32G441xx", "STM32G471xx", "STM32G473xx"
-                     , "STM32G474xx", "STM32G483xx", "STM32G484xx", "STM32G491xx", "STM32G4A1xx" ]
+  | "STM32G4" `Data.List.isPrefixOf` (d ^. name) 
   && p ^. name == "TIM2" && r ^. name == "CNT" = pure r
 -- G4 TIM2.CCR5, might be a bug in stm32-rs
 continuityCheckReg d p r
-  | d ^. name `elem` [ "STM32G431xx", "STM32G441xx", "STM32G471xx", "STM32G473xx"
-                     , "STM32G474xx", "STM32G483xx", "STM32G484xx", "STM32G491xx", "STM32G4A1xx" ]
+  | "STM32G4" `Data.List.isPrefixOf` (d ^. name) 
   && p ^. name == "TIM2" && r ^. name == "CCR5" = pure r
 -- F101, F103 TIM10.CCMR1_Output aliased OC1FE field
 continuityCheckReg d p r
   | d ^. name `elem` [ "STM32F101", "STM32F103" ]
   && p ^. name == "TIM10" && r ^. name == "CCMR1_Output" = pure r
 continuityCheckReg d p r
-  | d ^. name == "STM32H73x"
+  | "STM32H7" `Data.List.isPrefixOf` (d ^. name)
   && p ^. name == "CRYP" && r ^. name == "K2LR" = pure r
+continuityCheckReg d p r
+  | "STM32H7" `Data.List.isPrefixOf` (d ^. name)
+  && p ^. name == "ADC3" && r ^. name == "CFGR" = pure r
 continuityCheckReg d p r
   | (d ^. name == "STM32L0x2" || d ^. name == "STM32L0x3")
   && p ^.name == "PWR" && r ^. name == "CR" = pure r
