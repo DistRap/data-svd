@@ -14,8 +14,10 @@ import Data.SVD.Types (Device)
 import GHC.Generics (Generic)
 import Text.XML.HXT.Core (readString, runX, (>>>))
 
+import qualified Control.Monad
 import qualified Data.Bool
 import qualified Data.ByteString.Char8
+import qualified Data.Either
 import qualified Data.Hashable
 import qualified Data.Serialize
 import qualified Data.SVD.Dim
@@ -93,9 +95,11 @@ parseSVDOptions opts@SVDOptions{..} f = do
         Right x -> pure x
     else do
       res <- parseSVDFromString opts s
-      Data.ByteString.Char8.writeFile
-        caFile
-        $ Data.Serialize.encode res
+      Control.Monad.unless
+        (Data.Either.isLeft res)
+        $ Data.ByteString.Char8.writeFile
+            caFile
+            $ Data.Serialize.encode res
       pure res
 
 parseSVDFromString
