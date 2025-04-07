@@ -51,7 +51,7 @@ svd = atTag "device" >>>
     addressUnitBits' <- textAtTag "addressUnitBits" -< x
     width' <- textAtTag "width" -< x
     size' <- textAtTag "size" -< x
-    resetValue' <- textAtTag "resetValue" -< x
+    resetValue' <- withDefault (textAtTag "resetValue") "0" -< x
     resetMask' <- textAtTag "resetMask" -< x
 
     let deviceAddressUnitBits = read addressUnitBits'
